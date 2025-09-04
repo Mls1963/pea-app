@@ -24,7 +24,7 @@ echo "✅ Code poussé sur GitHub avec le message : $COMMIT_MSG"
 
 # Étape 4 (optionnel) : Trigger redeploy via webhook Coolify
 # Remplace WEBHOOK_URL par ton URL webhook Coolify si tu en as
-WEBHOOK_URL="https://app.coolify.io/webhook/TON_APP_ID"
+WEBHOOK_URL="http://91.205.104.129:8000/api/v1/deploy?uuid=r0k8gskgw4ckw0sc4sokwcww&force=false"
 if [ "$WEBHOOK_URL" != "" ]; then
   curl -X POST "$WEBHOOK_URL"
   echo "✅ Redeploy Coolify déclenché via webhook"
