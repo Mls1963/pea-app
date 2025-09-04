@@ -4,7 +4,7 @@ const MouvementForm = ({ onSubmit }) => {
   const [actifs, setActifs] = useState([]);
   const [form, setForm] = useState({
     Actif: "",
-    Date: "",
+    Date: new Date().toISOString().split("T")[0], // date du jour par défaut
     Quantité: "",
     Cours: "",
     Frais: "",
@@ -17,7 +17,7 @@ const MouvementForm = ({ onSubmit }) => {
     const fetchActifs = async () => {
       try {
         const res = await fetch(
-          "https://api.baserow.io/api/database/rows/table/695/?user_field_names=true",
+          "https://baserow.mlsapp.net/api/database/rows/table/695/?user_field_names=true",
           {
             headers: {
               Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`,
@@ -26,8 +26,8 @@ const MouvementForm = ({ onSubmit }) => {
         );
         const data = await res.json();
         if (data && data.results) {
-          // On prend le champ "Selecteur" comme libellé
-          setActifs(data.results.map((row) => row.Selecteur));
+          setActifs(data.results.map((row) => row.field_6759));
+          console.log("Actifs récupérés :", data.results.map((row) => row.field_6759));
         }
       } catch (err) {
         console.error("Erreur de récupération des actifs :", err);
@@ -41,9 +41,69 @@ const MouvementForm = ({ onSubmit }) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(form);
+
+    const montantTotal =
+      parseFloat(form.Cours || 0) * parseFloat(form.Quantité || 0) +
+      parseFloat(form.Frais || 0);
+
+    const mouvementData = {
+      ...form,
+      Montant_Total: montantTotal,
+    };
+
+    try {
+      // Envoyer le mouvement à Baserow
+      const res = await fetch(
+        "https://baserow.mlsapp.net/api/database/rows/table/696/?user_field_names=true",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(mouvementData),
+        }
+      );
+
+      if (!res.ok) throw new Error("Erreur lors de l’enregistrement du mouvement");
+
+      alert(`Mouvement enregistré : Montant total = ${montantTotal} €`);
+
+      // Mise à jour du PU ou quantité dans table Actifs (optionnel, peut être un autre endpoint)
+      // Exemple simplifié :
+      /*
+      await fetch(
+        `https://baserow.mlsapp.net/api/database/rows/table/695/${actif_id}/?user_field_names=true`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            Quantité: nouvelleQuantité,
+            PRU: nouveauPRU,
+          }),
+        }
+      );
+      */
+
+      // Réinitialiser le formulaire
+      setForm({
+        Actif: "",
+        Date: new Date().toISOString().split("T")[0],
+        Quantité: "",
+        Cours: "",
+        Frais: "",
+        Type: "",
+        Commentaire: "",
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Échec de l’enregistrement");
+    }
   };
 
   return (
