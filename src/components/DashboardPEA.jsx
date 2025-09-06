@@ -1,67 +1,117 @@
 import React, { useEffect, useState } from "react";
 
-const BASEROW_API_URL = "https://baseraw.mlsapp.net/api/database/rows/table";
-const BASEROW_TOKEN = "TON_TOKEN_BASEROW"; // ⚠️ à remplacer
+const DashboardPEA = () => {
+  const [mouvements, setMouvements] = useState([]);
+  const [actifsMap, setActifsMap] = useState({});
+  const [filterActif, setFilterActif] = useState("all");
 
-export default function DashboardPEA() {
-  const [actifs, setActifs] = useState([]);
-
+  // Chargement des actifs
   useEffect(() => {
-    fetch(`${BASEROW_API_URL}/695/?user_field_names=true`, {
-      headers: { Authorization: `Token ${BASEROW_TOKEN}` }
-    })
-      .then((res) => res.json())
-      .then((data) => setActifs(data.results || []));
+    const fetchActifs = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASEROW_URL}/api/database/rows/table/695/?user_field_names=true`,
+          {
+            headers: {
+              Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
+            }
+          }
+        );
+        const data = await response.json();
+        const map = {};
+        (data.results || []).forEach((actif) => {
+          map[actif.id] = actif.Selecteur;
+        });
+        setActifsMap(map);
+      } catch (error) {
+        console.error("Erreur lors du chargement des actifs :", error);
+      }
+    };
+    fetchActifs();
   }, []);
 
-  const totalValorisation = actifs.reduce(
-    (sum, a) => sum + a.Quantité * (a.PU || 0),
-    0
-  );
+  // Chargement des mouvements
+  useEffect(() => {
+    const fetchMouvements = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BASEROW_URL}/api/database/rows/table/696/?user_field_names=true`,
+          {
+            headers: {
+              Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
+            }
+          }
+        );
+        const data = await response.json();
+        // Tri par date décroissante
+        const sorted = (data.results || []).sort((a, b) => new Date(b.Date) - new Date(a.Date));
+        setMouvements(sorted);
+      } catch (error) {
+        console.error("Erreur lors du chargement des mouvements :", error);
+      }
+    };
+    fetchMouvements();
+  }, []);
+
+  // Liste filtrée
+  const filteredMouvements =
+    filterActif === "all"
+      ? mouvements
+      : mouvements.filter((m) => m.Actif?.length && actifsMap[m.Actif[0]] === filterActif);
 
   return (
-    <div className="p-6 bg-gray-50 rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-4">Synthèse PEA</h2>
-      <table className="w-full border">
+    <div className="p-4 bg-gray-900 text-white rounded-lg">
+      <h2 className="text-xl font-bold mb-4">Tableau des mouvements</h2>
+
+      {/* Filtre par actif */}
+      <div className="mb-4">
+        <label className="mr-2">Filtrer par actif :</label>
+        <select
+          value={filterActif}
+          onChange={(e) => setFilterActif(e.target.value)}
+          className="text-black px-2 py-1 rounded"
+        >
+          <option value="all">Tous</option>
+          {Object.values(actifsMap).map((nom) => (
+            <option key={nom} value={nom}>
+              {nom}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <table className="w-full table-auto border-collapse border border-gray-700">
         <thead>
-          <tr className="bg-gray-200">
-            <th className="p-2 border">ISIN</th>
-            <th className="p-2 border">Libellé</th>
-            <th className="p-2 border">Quantité</th>
-            <th className="p-2 border">PU (marché)</th>
-            <th className="p-2 border">PRU</th>
-            <th className="p-2 border">Valorisation</th>
-            <th className="p-2 border">Gain latent</th>
+          <tr className="bg-gray-800">
+            <th className="border border-gray-700 px-2 py-1">Actif</th>
+            <th className="border border-gray-700 px-2 py-1">Date</th>
+            <th className="border border-gray-700 px-2 py-1">Quantité</th>
+            <th className="border border-gray-700 px-2 py-1">Cours (€)</th>
+            <th className="border border-gray-700 px-2 py-1">Frais (€)</th>
+            <th className="border border-gray-700 px-2 py-1">Type</th>
+            <th className="border border-gray-700 px-2 py-1">Commentaire</th>
+            <th className="border border-gray-700 px-2 py-1">Montant Total (€)</th>
           </tr>
         </thead>
         <tbody>
-          {actifs.map((a) => {
-            const valorisation = a.Quantité * (a.PU || 0);
-            const gain = valorisation - a.Quantité * (a.PRU || 0);
-            return (
-              <tr key={a.id} className="text-center">
-                <td className="border p-2">{a.ISIN}</td>
-                <td className="border p-2">{a.Libellé}</td>
-                <td className="border p-2">{a.Quantité}</td>
-                <td className="border p-2">{a.PU?.toFixed(2)}</td>
-                <td className="border p-2">{a.PRU?.toFixed(2)}</td>
-                <td className="border p-2">{valorisation.toFixed(2)} €</td>
-                <td
-                  className={`border p-2 ${
-                    gain >= 0 ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {gain.toFixed(2)} €
-                </td>
-              </tr>
-            );
-          })}
+          {filteredMouvements.map((m) => (
+            <tr key={m.id}>
+              <td className="border border-gray-700 px-2 py-1">
+                {m.Actif?.length ? actifsMap[m.Actif[0]] || "Inconnu" : "—"}
+              </td>
+              <td className="border border-gray-700 px-2 py-1">{m.Date}</td>
+              <td className="border border-gray-700 px-2 py-1">{m.Quantité}</td>
+              <td className="border border-gray-700 px-2 py-1">{m.Cours}</td>
+              <td className="border border-gray-700 px-2 py-1">{m.Frais}</td>
+              <td className="border border-gray-700 px-2 py-1">{m.Type}</td>
+              <td className="border border-gray-700 px-2 py-1">{m.Commentaire}</td>
+              <td className="border border-gray-700 px-2 py-1">{m.Montant_Total}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
-
-      <div className="mt-4 font-bold text-lg">
-        Total valorisation : {totalValorisation.toFixed(2)} €
-      </div>
     </div>
   );
-}
+};
+
+export default DashboardPEA;

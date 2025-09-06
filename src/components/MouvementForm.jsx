@@ -1,210 +1,181 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
-const MouvementForm = ({ onSubmit }) => {
+const MouvementForm = () => {
   const [actifs, setActifs] = useState([]);
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     Actif: "",
-    Date: new Date().toISOString().split("T")[0],
+    Date: "",
     Quantité: "",
     Cours: "",
     Frais: "",
     Type: "",
-    Commentaire: "",
+    Commentaire: ""
   });
-  const [error, setError] = useState("");
 
+  // Chargement des actifs depuis Baserow
   useEffect(() => {
-    const apiKey = process.env.REACT_APP_BASEROW_API_KEY;
-
-    if (!apiKey) {
-      setError("⚠️ API Key Baserow non définie !");
-      console.error("API Key Baserow non définie !");
-      return;
-    }
-
     const fetchActifs = async () => {
       try {
-        const res = await fetch(
-          "https://baserow.mlsapp.net/api/database/rows/table/695/",
+        const response = await fetch(
+          `${process.env.REACT_APP_BASEROW_URL}/api/database/rows/table/695/?user_field_names=true`,
           {
             headers: {
-              Authorization: `Token ${apiKey}`,
-            },
+              Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
+            }
           }
         );
-        const data = await res.json();
-
-        if (data && data.results && data.results.length > 0) {
-          setActifs(data.results.map((row) => row.field_6759));
-          console.log("Actifs récupérés :", data.results.map((row) => row.field_6759));
-        } else {
-          setError("⚠️ Aucun actif trouvé dans la table. Vérifie la table ou la clé API.");
-        }
-      } catch (err) {
-        console.error("Erreur récupération actifs :", err);
-        setError("⚠️ Erreur lors de la récupération des actifs.");
+        const data = await response.json();
+        setActifs(data.results || []);
+      } catch (error) {
+        console.error("Erreur lors du chargement des actifs :", error);
       }
     };
-
     fetchActifs();
   }, []);
 
+  // Gestion des changements dans le formulaire
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
+  // Soumission du formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.Actif) {
-      alert("Sélectionnez un actif avant de soumettre.");
-      return;
-    }
 
+    // Calcul du montant total
     const montantTotal =
-      parseFloat(form.Cours || 0) * parseFloat(form.Quantité || 0) +
-      parseFloat(form.Frais || 0);
-
-    const mouvementData = { ...form, Montant_Total: montantTotal };
+      parseFloat(formData.Cours || 0) * parseFloat(formData.Quantité || 0) +
+      parseFloat(formData.Frais || 0);
 
     try {
-      const res = await fetch(
-        "https://baserow.mlsapp.net/api/database/rows/table/696/",
+      const response = await fetch(
+        `${process.env.REACT_APP_BASEROW_URL}/api/database/rows/table/696/?user_field_names=true`,
         {
           method: "POST",
           headers: {
-            Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`,
             "Content-Type": "application/json",
+            Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
           },
-          body: JSON.stringify(mouvementData),
+          body: JSON.stringify({
+            Actif: [formData.Actif], // ⚠️ on envoie l'id, pas le Selecteur
+            Date: formData.Date,
+            Quantité: formData.Quantité,
+            Cours: formData.Cours,
+            Frais: formData.Frais,
+            Type: formData.Type,
+            Commentaire: formData.Commentaire,
+            Montant_Total: montantTotal
+          })
         }
       );
 
-      if (!res.ok) throw new Error("Erreur lors de l’enregistrement du mouvement");
-
-      alert(`Mouvement enregistré : Montant total = ${montantTotal} €`);
-      setForm({
-        Actif: "",
-        Date: new Date().toISOString().split("T")[0],
-        Quantité: "",
-        Cours: "",
-        Frais: "",
-        Type: "",
-        Commentaire: "",
-      });
-    } catch (err) {
-      console.error(err);
-      alert("Échec de l’enregistrement");
+      if (response.ok) {
+        alert("Mouvement enregistré avec succès !");
+        setFormData({
+          Actif: "",
+          Date: "",
+          Quantité: "",
+          Cours: "",
+          Frais: "",
+          Type: "",
+          Commentaire: ""
+        });
+      } else {
+        console.error("Erreur API :", await response.text());
+      }
+    } catch (error) {
+      console.error("Erreur lors de la soumission :", error);
     }
   };
 
   return (
-    <div>
-      {error && <div className="bg-red-600 text-white p-2 mb-4 rounded">{error}</div>}
+    <form onSubmit={handleSubmit} className="p-4 bg-gray-900 text-white rounded-lg">
+      <h2 className="text-xl font-bold mb-4">Saisir un mouvement</h2>
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-gray-800 text-white p-6 rounded-2xl shadow-md space-y-4"
+      <label className="block mb-2">Actif</label>
+      <select
+        name="Actif"
+        value={formData.Actif}
+        onChange={handleChange}
+        className="w-full p-2 mb-4 rounded text-black"
+        required
       >
-        <div>
-          <label className="block mb-1">Actif</label>
-          <select
-            name="Actif"
-            value={form.Actif}
-            onChange={handleChange}
-            className="w-full p-2 rounded bg-gray-700"
-            required
-          >
-            <option value="">-- Sélectionner un actif --</option>
-            {actifs.map((a, idx) => (
-              <option key={idx} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
-        </div>
+        <option value="">-- Sélectionner un actif --</option>
+        {actifs.map((actif) => (
+          <option key={actif.id} value={actif.id}>
+            {actif.Selecteur}
+          </option>
+        ))}
+      </select>
 
-        <div>
-          <label className="block mb-1">Date</label>
-          <input
-            type="date"
-            name="Date"
-            value={form.Date}
-            onChange={handleChange}
-            className="w-full p-2 rounded bg-gray-700"
-            required
-          />
-        </div>
+      <label className="block mb-2">Date</label>
+      <input
+        type="date"
+        name="Date"
+        value={formData.Date}
+        onChange={handleChange}
+        className="w-full p-2 mb-4 rounded text-black"
+        required
+      />
 
-        <div>
-          <label className="block mb-1">Quantité</label>
-          <input
-            type="number"
-            name="Quantité"
-            value={form.Quantité}
-            onChange={handleChange}
-            className="w-full p-2 rounded bg-gray-700"
-            required
-          />
-        </div>
+      <label className="block mb-2">Quantité</label>
+      <input
+        type="number"
+        name="Quantité"
+        value={formData.Quantité}
+        onChange={handleChange}
+        className="w-full p-2 mb-4 rounded text-black"
+        required
+      />
 
-        <div>
-          <label className="block mb-1">Cours (€)</label>
-          <input
-            type="number"
-            step="0.01"
-            name="Cours"
-            value={form.Cours}
-            onChange={handleChange}
-            className="w-full p-2 rounded bg-gray-700"
-            required
-          />
-        </div>
+      <label className="block mb-2">Cours (€)</label>
+      <input
+        type="number"
+        step="0.01"
+        name="Cours"
+        value={formData.Cours}
+        onChange={handleChange}
+        className="w-full p-2 mb-4 rounded text-black"
+        required
+      />
 
-        <div>
-          <label className="block mb-1">Frais (€)</label>
-          <input
-            type="number"
-            step="0.01"
-            name="Frais"
-            value={form.Frais}
-            onChange={handleChange}
-            className="w-full p-2 rounded bg-gray-700"
-          />
-        </div>
+      <label className="block mb-2">Frais (€)</label>
+      <input
+        type="number"
+        step="0.01"
+        name="Frais"
+        value={formData.Frais}
+        onChange={handleChange}
+        className="w-full p-2 mb-4 rounded text-black"
+      />
 
-        <div>
-          <label className="block mb-1">Type</label>
-          <select
-            name="Type"
-            value={form.Type}
-            onChange={handleChange}
-            className="w-full p-2 rounded bg-gray-700"
-            required
-          >
-            <option value="">-- Choisir --</option>
-            <option value="Achat">Achat</option>
-            <option value="Vente">Vente</option>
-          </select>
-        </div>
+      <label className="block mb-2">Type</label>
+      <input
+        type="text"
+        name="Type"
+        value={formData.Type}
+        onChange={handleChange}
+        className="w-full p-2 mb-4 rounded text-black"
+      />
 
-        <div>
-          <label className="block mb-1">Commentaire</label>
-          <textarea
-            name="Commentaire"
-            value={form.Commentaire}
-            onChange={handleChange}
-            className="w-full p-2 rounded bg-gray-700"
-          />
-        </div>
+      <label className="block mb-2">Commentaire</label>
+      <textarea
+        name="Commentaire"
+        value={formData.Commentaire}
+        onChange={handleChange}
+        className="w-full p-2 mb-4 rounded text-black"
+      />
 
-        <button
-          type="submit"
-          className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white font-bold"
-        >
-          Enregistrer
-        </button>
-      </form>
-    </div>
+      <button
+        type="submit"
+        className="bg-blue-600 hover:bg-blue-800 px-4 py-2 rounded-lg"
+      >
+        Enregistrer
+      </button>
+    </form>
   );
 };
 
