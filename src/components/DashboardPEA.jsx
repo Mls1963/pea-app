@@ -8,7 +8,7 @@ const DashboardPEA = () => {
     const fetchMouvements = async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASEROW_URL}/database/rows/table/696/?user_field_names=true`,
+          `${process.env.REACT_APP_BASEROW_API_URL}/database/rows/table/696/?user_field_names=true`,
           {
             headers: {
               Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
