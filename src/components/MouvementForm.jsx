@@ -17,7 +17,7 @@ const MouvementForm = () => {
     const fetchActifs = async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASEROW_URL}/api/database/rows/table/695/?user_field_names=true`,
+          `${process.env.REACT_APP_BASEROW_URL}/api/database/rows/table/695/`,
           {
             headers: {
               Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
@@ -50,19 +50,19 @@ const MouvementForm = () => {
       parseFloat(formData.Frais || 0);
 
     const rowData = {
-      field_6745: formData.Actif,        // Code ISIN ou identifiant
-      field_6746: formData.Type,         // Type de mouvement
-      field_6747: formData.Quantité,     // Quantité
-      field_6748: formData.Cours,        // Cours
-      field_6749: formData.Frais,        // Frais
-      field_6750: montantTotal,          // Montant total
-      field_6751: formData.Commentaire,  // Commentaire
-      field_6752: formData.Date          // Date
+      Actif: formData.Actif,
+      Date: formData.Date,
+      Quantité: formData.Quantité,
+      Cours: formData.Cours,
+      Frais: formData.Frais,
+      Type: formData.Type,
+      Commentaire: formData.Commentaire,
+      Montant_Total: montantTotal
     };
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASEROW_URL}/api/database/rows/table/695/`,
+        `${process.env.REACT_APP_BASEROW_URL}/api/database/rows/table/696/?user_field_names=true`,
         {
           method: "POST",
           headers: {
@@ -77,20 +77,7 @@ const MouvementForm = () => {
         throw new Error(`Erreur Baserow: ${response.status}`);
       }
 
-      const result = await response.json();
-      console.log("Mouvement ajouté :", result);
-
-      // Réinitialiser le formulaire
-      setFormData({
-        Actif: "",
-        Date: "",
-        Quantité: "",
-        Cours: "",
-        Frais: "",
-        Type: "",
-        Commentaire: ""
-      });
-
+      await response.json();
       alert("Mouvement ajouté avec succès !");
     } catch (error) {
       console.error("Erreur lors de l'ajout du mouvement :", error);
@@ -99,14 +86,37 @@ const MouvementForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr",
+        gap: "1rem",
+        maxWidth: "500px",
+        margin: "2rem auto",
+        padding: "2rem",
+        borderRadius: "12px",
+        backgroundColor: "#1e1e2f",
+        color: "#f5f5f5",
+        boxShadow: "0 0 12px rgba(0,0,0,0.6)"
+      }}
+    >
+      <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>
+        ➕ Ajouter un Mouvement
+      </h2>
+
       <label>
         Actif:
-        <select name="Actif" value={formData.Actif} onChange={handleChange}>
+        <select
+          name="Actif"
+          value={formData.Actif}
+          onChange={handleChange}
+          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
+        >
           <option value="">-- Sélectionner un actif --</option>
           {actifs.map((actif) => (
-            <option key={actif.id} value={actif.field_6745}>
-              {actif.field_6747 || actif.field_6745}
+            <option key={actif.id} value={actif.field_6759}>
+              {actif.field_6759}
             </option>
           ))}
         </select>
@@ -114,27 +124,59 @@ const MouvementForm = () => {
 
       <label>
         Date:
-        <input type="date" name="Date" value={formData.Date} onChange={handleChange} />
+        <input
+          type="date"
+          name="Date"
+          value={formData.Date}
+          onChange={handleChange}
+          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
+        />
       </label>
 
       <label>
         Quantité:
-        <input type="number" step="any" name="Quantité" value={formData.Quantité} onChange={handleChange} />
+        <input
+          type="number"
+          step="any"
+          name="Quantité"
+          value={formData.Quantité}
+          onChange={handleChange}
+          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
+        />
       </label>
 
       <label>
         Cours:
-        <input type="number" step="any" name="Cours" value={formData.Cours} onChange={handleChange} />
+        <input
+          type="number"
+          step="any"
+          name="Cours"
+          value={formData.Cours}
+          onChange={handleChange}
+          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
+        />
       </label>
 
       <label>
         Frais:
-        <input type="number" step="any" name="Frais" value={formData.Frais} onChange={handleChange} />
+        <input
+          type="number"
+          step="any"
+          name="Frais"
+          value={formData.Frais}
+          onChange={handleChange}
+          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
+        />
       </label>
 
       <label>
         Type:
-        <select name="Type" value={formData.Type} onChange={handleChange}>
+        <select
+          name="Type"
+          value={formData.Type}
+          onChange={handleChange}
+          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
+        >
           <option value="">-- Sélectionner le type --</option>
           <option value="Achat">Achat</option>
           <option value="Vente">Vente</option>
@@ -143,10 +185,32 @@ const MouvementForm = () => {
 
       <label>
         Commentaire:
-        <textarea name="Commentaire" value={formData.Commentaire} onChange={handleChange} />
+        <textarea
+          name="Commentaire"
+          value={formData.Commentaire}
+          onChange={handleChange}
+          style={{
+            width: "100%",
+            padding: "8px",
+            borderRadius: "6px",
+            minHeight: "60px"
+          }}
+        />
       </label>
 
-      <button type="submit">Ajouter Mouvement</button>
+      <button
+        type="submit"
+        style={{
+          padding: "10px",
+          borderRadius: "6px",
+          backgroundColor: "#4cafef",
+          color: "white",
+          fontWeight: "bold",
+          cursor: "pointer"
+        }}
+      >
+        ✅ Enregistrer
+      </button>
     </form>
   );
 };
