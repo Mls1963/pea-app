@@ -17,14 +17,20 @@ const MouvementForm = () => {
     const fetchActifs = async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASEROW_URL}/api/database/rows/table/695/`,
+          `${process.env.REACT_APP_BASEROW_API_URL}/api/database/rows/table/695/?user_field_names=true`,
           {
             headers: {
               Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
             }
           }
         );
-        const data = await response.json();
+
+        // Temporaire : afficher le texte reçu
+        const text = await response.text();
+        console.log("Réponse brute :", text);
+
+        // Essayer de parser JSON si possible
+        const data = JSON.parse(text);
         setActifs(data.results || []);
       } catch (error) {
         console.error("Erreur lors du chargement des actifs :", error);
@@ -45,172 +51,61 @@ const MouvementForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Calcul du montant total
     const montantTotal =
       parseFloat(formData.Cours || 0) * parseFloat(formData.Quantité || 0) +
       parseFloat(formData.Frais || 0);
 
-    const rowData = {
-      Actif: formData.Actif,
-      Date: formData.Date,
-      Quantité: formData.Quantité,
-      Cours: formData.Cours,
-      Frais: formData.Frais,
-      Type: formData.Type,
-      Commentaire: formData.Commentaire,
-      Montant_Total: montantTotal
-    };
+    console.log("Mouvement à envoyer :", { ...formData, Montant: montantTotal });
 
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_BASEROW_URL}/api/database/rows/table/696/?user_field_names=true`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
-          },
-          body: JSON.stringify(rowData)
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Erreur Baserow: ${response.status}`);
-      }
-
-      await response.json();
-      alert("Mouvement ajouté avec succès !");
-    } catch (error) {
-      console.error("Erreur lors de l'ajout du mouvement :", error);
-      alert("Erreur lors de l'ajout du mouvement. Vérifie la console.");
-    }
+    // Ici tu pourrais envoyer les données vers Baserow ou un backend
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr",
-        gap: "1rem",
-        maxWidth: "500px",
-        margin: "2rem auto",
-        padding: "2rem",
-        borderRadius: "12px",
-        backgroundColor: "#1e1e2f",
-        color: "#f5f5f5",
-        boxShadow: "0 0 12px rgba(0,0,0,0.6)"
-      }}
-    >
-      <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>
-        ➕ Ajouter un Mouvement
-      </h2>
-
-      <label>
-        Actif:
-        <select
-          name="Actif"
-          value={formData.Actif}
-          onChange={handleChange}
-          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
-        >
-          <option value="">-- Sélectionner un actif --</option>
+    <form onSubmit={handleSubmit} style={{ backgroundColor: "#1e1e1e", color: "#fff", padding: "20px", borderRadius: "8px" }}>
+      <div>
+        <label>Actif :</label>
+        <select name="Actif" value={formData.Actif} onChange={handleChange}>
+          <option value="">Sélectionner un actif</option>
           {actifs.map((actif) => (
-            <option key={actif.id} value={actif.field_6759}>
-              {actif.field_6759}
+            <option key={actif.id} value={actif.id}>
+              {actif.field_6759 || actif.field_6747 || `Actif ${actif.id}`}
             </option>
           ))}
         </select>
-      </label>
+      </div>
 
-      <label>
-        Date:
-        <input
-          type="date"
-          name="Date"
-          value={formData.Date}
-          onChange={handleChange}
-          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
-        />
-      </label>
+      <div>
+        <label>Date :</label>
+        <input type="date" name="Date" value={formData.Date} onChange={handleChange} />
+      </div>
 
-      <label>
-        Quantité:
-        <input
-          type="number"
-          step="any"
-          name="Quantité"
-          value={formData.Quantité}
-          onChange={handleChange}
-          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
-        />
-      </label>
+      <div>
+        <label>Quantité :</label>
+        <input type="number" name="Quantité" value={formData.Quantité} onChange={handleChange} />
+      </div>
 
-      <label>
-        Cours:
-        <input
-          type="number"
-          step="any"
-          name="Cours"
-          value={formData.Cours}
-          onChange={handleChange}
-          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
-        />
-      </label>
+      <div>
+        <label>Cours :</label>
+        <input type="number" step="0.01" name="Cours" value={formData.Cours} onChange={handleChange} />
+      </div>
 
-      <label>
-        Frais:
-        <input
-          type="number"
-          step="any"
-          name="Frais"
-          value={formData.Frais}
-          onChange={handleChange}
-          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
-        />
-      </label>
+      <div>
+        <label>Frais :</label>
+        <input type="number" step="0.01" name="Frais" value={formData.Frais} onChange={handleChange} />
+      </div>
 
-      <label>
-        Type:
-        <select
-          name="Type"
-          value={formData.Type}
-          onChange={handleChange}
-          style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
-        >
-          <option value="">-- Sélectionner le type --</option>
-          <option value="Achat">Achat</option>
-          <option value="Vente">Vente</option>
-        </select>
-      </label>
+      <div>
+        <label>Type :</label>
+        <input type="text" name="Type" value={formData.Type} onChange={handleChange} />
+      </div>
 
-      <label>
-        Commentaire:
-        <textarea
-          name="Commentaire"
-          value={formData.Commentaire}
-          onChange={handleChange}
-          style={{
-            width: "100%",
-            padding: "8px",
-            borderRadius: "6px",
-            minHeight: "60px"
-          }}
-        />
-      </label>
+      <div>
+        <label>Commentaire :</label>
+        <textarea name="Commentaire" value={formData.Commentaire} onChange={handleChange}></textarea>
+      </div>
 
-      <button
-        type="submit"
-        style={{
-          padding: "10px",
-          borderRadius: "6px",
-          backgroundColor: "#4cafef",
-          color: "white",
-          fontWeight: "bold",
-          cursor: "pointer"
-        }}
-      >
-        ✅ Enregistrer
-      </button>
+      <button type="submit">Envoyer</button>
     </form>
   );
 };
