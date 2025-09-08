@@ -17,7 +17,7 @@ const MouvementForm = () => {
     const fetchActifs = async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASEROW_URL}/database/rows/table/695/`,
+          `${process.env.REACT_APP_BASEROW_URL}/api/database/rows/table/695/`,
           {
             headers: {
               Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
