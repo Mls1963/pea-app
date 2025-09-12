@@ -13,29 +13,33 @@ const MouvementForm = () => {
   });
 
   // Chargement des actifs depuis Baserow
-useEffect(() => {
-  console.log("REACT_APP_BASEROW_API_URL =", process.env.REACT_APP_BASEROW_API_URL);
-  console.log("REACT_APP_BASEROW_API_KEY =", process.env.REACT_APP_BASEROW_API_KEY);
+  useEffect(() => {
+    const fetchActifs = async () => {
+      try {
+        const url = `${process.env.REACT_APP_BASEROW_API_URL}/api/database/rows/table/695/?user_field_names=true`;
+        console.log("🔍 URL utilisée pour récupérer les actifs :", url);
+        console.log("🔑 API Key utilisée :", process.env.REACT_APP_BASEROW_API_KEY);
 
-  const url = `${process.env.REACT_APP_BASEROW_API_URL}/database/rows/table/695/?user_field_names=true`;
-  console.log("URL finale appelée =", url);
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`,
+            "Content-Type": "application/json"
+          }
+        });
 
-  const fetchActifs = async () => {
-    try {
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
-        }
-      });
-      const text = await response.text();
-      console.log("Réponse brute :", text);
-    } catch (error) {
-      console.error("Erreur lors du chargement des actifs :", error);
-    }
-  };
+        const text = await response.text(); // lecture brute
+        console.log("📩 Réponse brute reçue :", text);
 
-  fetchActifs();
-}, []);
+        const data = JSON.parse(text); // tentative de parse JSON
+        console.log("✅ Données JSON parsées :", data);
+
+        setActifs(data.results || []);
+      } catch (error) {
+        console.error("❌ Erreur lors du chargement des actifs :", error);
+      }
+    };
+    fetchActifs();
+  }, []);
 
   // Gestion des changements dans le formulaire
   const handleChange = (e) => {
@@ -49,62 +53,71 @@ useEffect(() => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Calcul du montant total
     const montantTotal =
       parseFloat(formData.Cours || 0) * parseFloat(formData.Quantité || 0) +
       parseFloat(formData.Frais || 0);
 
-    console.log("Mouvement à envoyer :", { ...formData, Montant: montantTotal });
+    console.log("📤 Données envoyées :", { ...formData, Montant: montantTotal });
 
-    // Ici tu pourrais envoyer les données vers Baserow ou un backend
+    // Ici tu pourras rajouter l’appel POST vers Baserow
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ backgroundColor: "#1e1e1e", color: "#fff", padding: "20px", borderRadius: "8px" }}>
-      <div>
-        <label>Actif :</label>
-        <select name="Actif" value={formData.Actif} onChange={handleChange}>
-          <option value="">Sélectionner un actif</option>
-          {actifs.map((actif) => (
-            <option key={actif.id} value={actif.id}>
-              {actif.field_6759 || actif.field_6747 || `Actif ${actif.id}`}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div style={{ backgroundColor: "#121212", color: "#fff", padding: "20px" }}>
+      <h2>Saisie d’un Mouvement</h2>
+      <form onSubmit={handleSubmit}>
+        {/* Sélecteur d’actifs */}
+        <div>
+          <label>Actif : </label>
+          <select name="Actif" value={formData.Actif} onChange={handleChange}>
+            <option value="">-- Choisir un actif --</option>
+            {actifs.map((actif) => (
+              <option key={actif.id} value={actif.id}>
+                {actif.Nom || actif.field_6747 || "Sans nom"}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <div>
-        <label>Date :</label>
-        <input type="date" name="Date" value={formData.Date} onChange={handleChange} />
-      </div>
+        {/* Autres champs */}
+        <div>
+          <label>Date : </label>
+          <input type="date" name="Date" value={formData.Date} onChange={handleChange} />
+        </div>
 
-      <div>
-        <label>Quantité :</label>
-        <input type="number" name="Quantité" value={formData.Quantité} onChange={handleChange} />
-      </div>
+        <div>
+          <label>Quantité : </label>
+          <input type="number" name="Quantité" value={formData.Quantité} onChange={handleChange} />
+        </div>
 
-      <div>
-        <label>Cours :</label>
-        <input type="number" step="0.01" name="Cours" value={formData.Cours} onChange={handleChange} />
-      </div>
+        <div>
+          <label>Cours : </label>
+          <input type="number" step="0.01" name="Cours" value={formData.Cours} onChange={handleChange} />
+        </div>
 
-      <div>
-        <label>Frais :</label>
-        <input type="number" step="0.01" name="Frais" value={formData.Frais} onChange={handleChange} />
-      </div>
+        <div>
+          <label>Frais : </label>
+          <input type="number" step="0.01" name="Frais" value={formData.Frais} onChange={handleChange} />
+        </div>
 
-      <div>
-        <label>Type :</label>
-        <input type="text" name="Type" value={formData.Type} onChange={handleChange} />
-      </div>
+        <div>
+          <label>Type : </label>
+          <select name="Type" value={formData.Type} onChange={handleChange}>
+            <option value="">-- Choisir --</option>
+            <option value="Achat">Achat</option>
+            <option value="Vente">Vente</option>
+            <option value="Dividende">Dividende</option>
+          </select>
+        </div>
 
-      <div>
-        <label>Commentaire :</label>
-        <textarea name="Commentaire" value={formData.Commentaire} onChange={handleChange}></textarea>
-      </div>
+        <div>
+          <label>Commentaire : </label>
+          <input type="text" name="Commentaire" value={formData.Commentaire} onChange={handleChange} />
+        </div>
 
-      <button type="submit">Envoyer</button>
-    </form>
+        <button type="submit">Enregistrer</button>
+      </form>
+    </div>
   );
 };
 
