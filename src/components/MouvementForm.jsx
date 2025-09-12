@@ -1,124 +1,128 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 
-const MouvementForm = () => {
+function MouvementForm() {
   const [actifs, setActifs] = useState([]);
   const [formData, setFormData] = useState({
-    Actif: "",
-    Date: "",
-    Quantité: "",
-    Cours: "",
-    Frais: "",
-    Type: "",
-    Commentaire: ""
+    date: "",
+    actif: "",
+    quantite: "",
+    prix: "",
+    type: "achat",
   });
 
-  // Chargement des actifs depuis Baserow
-useEffect(() => {
-  const fetchMouvements = async () => {
-    try {
-      console.log("🔍 URL utilisée :", `${process.env.REACT_APP_BASEROW_API_URL}/api/database/rows/table/695/?user_field_names=true`);
-      console.log("🔑 API KEY :", process.env.REACT_APP_BASEROW_API_KEY);
+  useEffect(() => {
+    const fetchActifs = async () => {
+      try {
+        const url = `${process.env.REACT_APP_BASEROW_API_URL}/api/database/rows/table/695/?user_field_names=true`;
+        const apiKey = process.env.REACT_APP_BASEROW_API_KEY;
 
-      const response = await fetch(
-        `${process.env.REACT_APP_BASEROW_API_URL}/api/database/rows/table/695/?user_field_names=true`,
-        {
+        console.log("---- DEBUG ENV ----");
+        console.log("API URL:", process.env.REACT_APP_BASEROW_API_URL);
+        console.log("API KEY:", apiKey ? "✔️ définie" : "❌ non définie");
+        console.log("Full request URL:", url);
+
+        const response = await fetch(url, {
           headers: {
-            Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`,
+            Authorization: `Token ${apiKey}`,
           },
+        });
+
+        const text = await response.text();
+        console.log("Réponse brute :", text);
+
+        try {
+          const data = JSON.parse(text);
+          console.log("Réponse JSON parsée :", data);
+          setActifs(data.results || []);
+        } catch (jsonError) {
+          console.error("❌ Erreur lors du parsing JSON :", jsonError);
         }
-      );
+      } catch (error) {
+        console.error("❌ Erreur lors du chargement des actifs :", error);
+      }
+    };
 
-      const text = await response.text(); // 🔍 debug
-      console.log("🔍 Réponse brute :", text);
+    fetchActifs();
+  }, []);
 
-      const data = JSON.parse(text);
-      setMouvements(data.results || []);
-    } catch (error) {
-      console.error("❌ Erreur lors du chargement des mouvements :", error);
-    }
-  };
-
-  fetchMouvements();
-}, []);
-
-  // Gestion des changements dans le formulaire
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
-  // Soumission du formulaire
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-
-    const montantTotal =
-      parseFloat(formData.Cours || 0) * parseFloat(formData.Quantité || 0) +
-      parseFloat(formData.Frais || 0);
-
-    console.log("📤 Données envoyées :", { ...formData, Montant: montantTotal });
-
-    // Ici tu pourras rajouter l’appel POST vers Baserow
+    console.log("Mouvement soumis :", formData);
   };
 
   return (
-    <div style={{ backgroundColor: "#121212", color: "#fff", padding: "20px" }}>
-      <h2>Saisie d’un Mouvement</h2>
-      <form onSubmit={handleSubmit}>
-        {/* Sélecteur d’actifs */}
-        <div>
-          <label>Actif : </label>
-          <select name="Actif" value={formData.Actif} onChange={handleChange}>
-            <option value="">-- Choisir un actif --</option>
-            {actifs.map((actif) => (
-              <option key={actif.id} value={actif.id}>
-                {actif.Nom || actif.field_6747 || "Sans nom"}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Autres champs */}
-        <div>
-          <label>Date : </label>
-          <input type="date" name="Date" value={formData.Date} onChange={handleChange} />
-        </div>
-
-        <div>
-          <label>Quantité : </label>
-          <input type="number" name="Quantité" value={formData.Quantité} onChange={handleChange} />
-        </div>
-
-        <div>
-          <label>Cours : </label>
-          <input type="number" step="0.01" name="Cours" value={formData.Cours} onChange={handleChange} />
-        </div>
-
-        <div>
-          <label>Frais : </label>
-          <input type="number" step="0.01" name="Frais" value={formData.Frais} onChange={handleChange} />
-        </div>
-
-        <div>
-          <label>Type : </label>
-          <select name="Type" value={formData.Type} onChange={handleChange}>
-            <option value="">-- Choisir --</option>
-            <option value="Achat">Achat</option>
-            <option value="Vente">Vente</option>
-            <option value="Dividende">Dividende</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Commentaire : </label>
-          <input type="text" name="Commentaire" value={formData.Commentaire} onChange={handleChange} />
-        </div>
-
-        <button type="submit">Enregistrer</button>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className="p-4 bg-gray-900 text-white rounded-lg">
+      <h2 className="text-xl font-bold mb-4">Ajouter un mouvement</h2>
+      <div className="mb-2">
+        <label className="block">Date</label>
+        <input
+          type="date"
+          name="date"
+          value={formData.date}
+          onChange={handleChange}
+          className="p-2 rounded text-black"
+        />
+      </div>
+      <div className="mb-2">
+        <label className="block">Actif</label>
+        <select
+          name="actif"
+          value={formData.actif}
+          onChange={handleChange}
+          className="p-2 rounded text-black"
+        >
+          <option value="">-- Choisir un actif --</option>
+          {actifs.map((a) => (
+            <option key={a.id} value={a.Nom || a.id}>
+              {a.Nom || `Actif ${a.id}`}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="mb-2">
+        <label className="block">Quantité</label>
+        <input
+          type="number"
+          name="quantite"
+          value={formData.quantite}
+          onChange={handleChange}
+          className="p-2 rounded text-black"
+        />
+      </div>
+      <div className="mb-2">
+        <label className="block">Prix</label>
+        <input
+          type="number"
+          name="prix"
+          value={formData.prix}
+          onChange={handleChange}
+          className="p-2 rounded text-black"
+        />
+      </div>
+      <div className="mb-2">
+        <label className="block">Type</label>
+        <select
+          name="type"
+          value={formData.type}
+          onChange={handleChange}
+          className="p-2 rounded text-black"
+        >
+          <option value="achat">Achat</option>
+          <option value="vente">Vente</option>
+        </select>
+      </div>
+      <button type="submit" className="mt-4 p-2 bg-green-600 rounded">
+        Enregistrer
+      </button>
+    </form>
   );
-};
+}
 
 export default MouvementForm;
