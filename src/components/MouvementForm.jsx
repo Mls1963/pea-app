@@ -13,34 +13,33 @@ const MouvementForm = () => {
   });
 
   // Chargement des actifs depuis Baserow
-  useEffect(() => {
-    const fetchActifs = async () => {
-      try {
-        const url = `${process.env.REACT_APP_BASEROW_API_URL}/api/database/rows/table/695/?user_field_names=true`;
-        console.log("🔍 URL utilisée pour récupérer les actifs :", url);
-        console.log("🔑 API Key utilisée :", process.env.REACT_APP_BASEROW_API_KEY);
-        console.log("🔍 process.env :", process.env);
+useEffect(() => {
+  const fetchMouvements = async () => {
+    try {
+      console.log("🔍 URL utilisée :", `${process.env.REACT_APP_BASEROW_API_URL}/api/database/rows/table/695/?user_field_names=true`);
+      console.log("🔑 API KEY :", process.env.REACT_APP_BASEROW_API_KEY);
 
-        const response = await fetch(url, {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASEROW_API_URL}/api/database/rows/table/695/?user_field_names=true`,
+        {
           headers: {
             Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`,
-            "Content-Type": "application/json"
-          }
-        });
+          },
+        }
+      );
 
-        const text = await response.text(); // lecture brute
-        console.log("📩 Réponse brute reçue :", text);
+      const text = await response.text(); // 🔍 debug
+      console.log("🔍 Réponse brute :", text);
 
-        const data = JSON.parse(text); // tentative de parse JSON
-        console.log("✅ Données JSON parsées :", data);
+      const data = JSON.parse(text);
+      setMouvements(data.results || []);
+    } catch (error) {
+      console.error("❌ Erreur lors du chargement des mouvements :", error);
+    }
+  };
 
-        setActifs(data.results || []);
-      } catch (error) {
-        console.error("❌ Erreur lors du chargement des actifs :", error);
-      }
-    };
-    fetchActifs();
-  }, []);
+  fetchMouvements();
+}, []);
 
   // Gestion des changements dans le formulaire
   const handleChange = (e) => {
