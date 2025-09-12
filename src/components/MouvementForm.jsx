@@ -6,10 +6,14 @@ function MouvementForm() {
     date: "",
     actif: "",
     quantite: "",
-    prix: "",
+    cours: "",
+    frais: "",
     type: "achat",
+    commentaire: "",
+    montant_total: 0,
   });
 
+  // Chargement des actifs depuis Baserow
   useEffect(() => {
     const fetchActifs = async () => {
       try {
@@ -22,9 +26,7 @@ function MouvementForm() {
         console.log("Full request URL:", url);
 
         const response = await fetch(url, {
-          headers: {
-            Authorization: `Token ${apiKey}`,
-          },
+          headers: { Authorization: `Token ${apiKey}` },
         });
 
         const text = await response.text();
@@ -45,83 +47,146 @@ function MouvementForm() {
     fetchActifs();
   }, []);
 
+  // Gestion des changements et recalcul du montant total
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    const newFormData = { ...formData, [name]: value };
+
+    if (["quantite", "cours", "frais"].includes(name)) {
+      const q = parseFloat(newFormData.quantite || 0);
+      const c = parseFloat(newFormData.cours || 0);
+      const f = parseFloat(newFormData.frais || 0);
+      newFormData.montant_total = (q * c + f).toFixed(2);
+    }
+
+    setFormData(newFormData);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Mouvement soumis :", formData);
+
+    // Ici tu peux faire un POST vers Baserow ou autre backend
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 bg-gray-900 text-white rounded-lg">
-      <h2 className="text-xl font-bold mb-4">Ajouter un mouvement</h2>
-      <div className="mb-2">
-        <label className="block">Date</label>
-        <input
-          type="date"
-          name="date"
-          value={formData.date}
-          onChange={handleChange}
-          className="p-2 rounded text-black"
-        />
-      </div>
-      <div className="mb-2">
-        <label className="block">Actif</label>
-        <select
-          name="actif"
-          value={formData.actif}
-          onChange={handleChange}
-          className="p-2 rounded text-black"
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-gray-800 text-white rounded-lg shadow-lg p-6 w-full max-w-md space-y-4"
+      >
+        <h2 className="text-2xl font-bold mb-2 text-center">Ajouter un mouvement</h2>
+
+        <div>
+          <label>Date *</label>
+          <input
+            type="date"
+            name="date"
+            value={formData.date}
+            onChange={handleChange}
+            required
+            className="p-2 rounded text-black w-full"
+          />
+        </div>
+
+        <div>
+          <label>Actif *</label>
+          <select
+            name="actif"
+            value={formData.actif}
+            onChange={handleChange}
+            required
+            className="p-2 rounded text-black w-full"
+          >
+            <option value="">-- Choisir un actif --</option>
+            {actifs.map((a) => (
+              <option key={a.id} value={a.field_6759 || a.id}>
+                {a.field_6759} - {a.field_6747} {/* code unique + nom */}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label>Quantité *</label>
+          <input
+            type="number"
+            name="quantite"
+            value={formData.quantite}
+            onChange={handleChange}
+            required
+            className="p-2 rounded text-black w-full"
+          />
+        </div>
+
+        <div>
+          <label>Cours *</label>
+          <input
+            type="number"
+            name="cours"
+            value={formData.cours}
+            onChange={handleChange}
+            required
+            className="p-2 rounded text-black w-full"
+          />
+        </div>
+
+        <div>
+          <label>Frais *</label>
+          <input
+            type="number"
+            name="frais"
+            value={formData.frais}
+            onChange={handleChange}
+            required
+            className="p-2 rounded text-black w-full"
+          />
+        </div>
+
+        <div>
+          <label>Type *</label>
+          <select
+            name="type"
+            value={formData.type}
+            onChange={handleChange}
+            required
+            className="p-2 rounded text-black w-full"
+          >
+            <option value="achat">Achat</option>
+            <option value="vente">Vente</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Commentaire</label>
+          <input
+            type="text"
+            name="commentaire"
+            value={formData.commentaire}
+            onChange={handleChange}
+            className="p-2 rounded text-black w-full"
+          />
+        </div>
+
+        <div>
+          <label>Montant Total</label>
+          <input
+            type="text"
+            name="montant_total"
+            value={formData.montant_total}
+            readOnly
+            className="p-2 rounded text-black w-full bg-gray-700"
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="mt-2 p-2 bg-green-600 rounded w-full font-bold hover:bg-green-700"
         >
-          <option value="">-- Choisir un actif --</option>
-          {actifs.map((a) => (
-            <option key={a.id} value={a.Nom || a.id}>
-              {a.Nom || `Actif ${a.id}`}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="mb-2">
-        <label className="block">Quantité</label>
-        <input
-          type="number"
-          name="quantite"
-          value={formData.quantite}
-          onChange={handleChange}
-          className="p-2 rounded text-black"
-        />
-      </div>
-      <div className="mb-2">
-        <label className="block">Prix</label>
-        <input
-          type="number"
-          name="prix"
-          value={formData.prix}
-          onChange={handleChange}
-          className="p-2 rounded text-black"
-        />
-      </div>
-      <div className="mb-2">
-        <label className="block">Type</label>
-        <select
-          name="type"
-          value={formData.type}
-          onChange={handleChange}
-          className="p-2 rounded text-black"
-        >
-          <option value="achat">Achat</option>
-          <option value="vente">Vente</option>
-        </select>
-      </div>
-      <button type="submit" className="mt-4 p-2 bg-green-600 rounded">
-        Enregistrer
-      </button>
-    </form>
+          Enregistrer
+        </button>
+      </form>
+    </div>
   );
 }
 
