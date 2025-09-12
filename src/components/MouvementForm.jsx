@@ -13,31 +13,29 @@ const MouvementForm = () => {
   });
 
   // Chargement des actifs depuis Baserow
-  useEffect(() => {
-    const fetchActifs = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_BASEROW_API_URL}/database/rows/table/695/?user_field_names=true`,
-          {
-            headers: {
-              Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
-            }
-          }
-        );
+useEffect(() => {
+  console.log("REACT_APP_BASEROW_API_URL =", process.env.REACT_APP_BASEROW_API_URL);
+  console.log("REACT_APP_BASEROW_API_KEY =", process.env.REACT_APP_BASEROW_API_KEY);
 
-        // Temporaire : afficher le texte reçu
-        const text = await response.text();
-        console.log("Réponse brute :", text);
+  const url = `${process.env.REACT_APP_BASEROW_API_URL}/database/rows/table/695/?user_field_names=true`;
+  console.log("URL finale appelée =", url);
 
-        // Essayer de parser JSON si possible
-        const data = JSON.parse(text);
-        setActifs(data.results || []);
-      } catch (error) {
-        console.error("Erreur lors du chargement des actifs :", error);
-      }
-    };
-    fetchActifs();
-  }, []);
+  const fetchActifs = async () => {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`
+        }
+      });
+      const text = await response.text();
+      console.log("Réponse brute :", text);
+    } catch (error) {
+      console.error("Erreur lors du chargement des actifs :", error);
+    }
+  };
+
+  fetchActifs();
+}, []);
 
   // Gestion des changements dans le formulaire
   const handleChange = (e) => {
