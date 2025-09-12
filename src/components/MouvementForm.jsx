@@ -19,6 +19,7 @@ const MouvementForm = () => {
         const url = `${process.env.REACT_APP_BASEROW_API_URL}/api/database/rows/table/695/?user_field_names=true`;
         console.log("🔍 URL utilisée pour récupérer les actifs :", url);
         console.log("🔑 API Key utilisée :", process.env.REACT_APP_BASEROW_API_KEY);
+        console.log("🔍 process.env :", process.env);
 
         const response = await fetch(url, {
           headers: {
