@@ -1,193 +1,190 @@
 import React, { useState, useEffect } from "react";
 
-function MouvementForm() {
+const MouvementForm = () => {
   const [actifs, setActifs] = useState([]);
   const [formData, setFormData] = useState({
-    date: "",
-    actif: "",
-    quantite: "",
-    cours: "",
-    frais: "",
-    type: "achat",
-    commentaire: "",
-    montant_total: 0,
+    Date: "",
+    Actif: "",
+    Quantité: "",
+    Cours: "",
+    Frais: "",
+    Type: "",
+    Commentaire: "",
   });
 
-  // Chargement des actifs depuis Baserow
   useEffect(() => {
     const fetchActifs = async () => {
       try {
-        const url = `${process.env.REACT_APP_BASEROW_API_URL}/api/database/rows/table/695/?user_field_names=true`;
-        const apiKey = process.env.REACT_APP_BASEROW_API_KEY;
-
-        console.log("---- DEBUG ENV ----");
-        console.log("API URL:", process.env.REACT_APP_BASEROW_API_URL);
-        console.log("API KEY:", apiKey ? "✔️ définie" : "❌ non définie");
-        console.log("Full request URL:", url);
+        const url = `${process.env.REACT_APP_BASEROW_API_URL}/database/rows/table/695/?user_field_names=true`;
+        console.log("URL utilisée pour fetch actifs :", url);
 
         const response = await fetch(url, {
-          headers: { Authorization: `Token ${apiKey}` },
+          headers: {
+            Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`,
+          },
         });
 
-        const text = await response.text();
-        console.log("Réponse brute :", text);
+        const data = await response.json();
+        console.log("Réponse Baserow actifs :", data);
 
-        try {
-          const data = JSON.parse(text);
-          console.log("Réponse JSON parsée :", data);
-          setActifs(data.results || []);
-        } catch (jsonError) {
-          console.error("❌ Erreur lors du parsing JSON :", jsonError);
-        }
+        setActifs(data.results || []);
       } catch (error) {
-        console.error("❌ Erreur lors du chargement des actifs :", error);
+        console.error("Erreur lors du chargement des actifs :", error);
       }
     };
 
     fetchActifs();
   }, []);
 
-  // Gestion des changements et recalcul du montant total
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    const newFormData = { ...formData, [name]: value };
-
-    if (["quantite", "cours", "frais"].includes(name)) {
-      const q = parseFloat(newFormData.quantite || 0);
-      const c = parseFloat(newFormData.cours || 0);
-      const f = parseFloat(newFormData.frais || 0);
-      newFormData.montant_total = (q * c + f).toFixed(2);
-    }
-
-    setFormData(newFormData);
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Mouvement soumis :", formData);
 
-    // Ici tu peux faire un POST vers Baserow ou autre backend
+    // Calcul du montant total
+    const montantTotal =
+      parseFloat(formData.Quantité || 0) * parseFloat(formData.Cours || 0) +
+      parseFloat(formData.Frais || 0);
+
+    const mouvement = {
+      ...formData,
+      Montant_Total: montantTotal,
+    };
+
+    try {
+      const url = `${process.env.REACT_APP_BASEROW_API_URL}/database/rows/table/702/?user_field_names=true`;
+      console.log("URL utilisée pour POST mouvement :", url);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${process.env.REACT_APP_BASEROW_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(mouvement),
+      });
+
+      const data = await response.json();
+      console.log("Mouvement ajouté :", data);
+
+      alert("Mouvement ajouté avec succès !");
+    } catch (error) {
+      console.error("Erreur lors de l'ajout du mouvement :", error);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-gray-800 text-white rounded-lg shadow-lg p-6 w-full max-w-md space-y-4"
-      >
-        <h2 className="text-2xl font-bold mb-2 text-center">Ajouter un mouvement</h2>
+    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-6">
+      <div className="bg-gray-800 p-8 rounded-2xl shadow-lg w-full max-w-3xl">
+        <h2 className="text-2xl font-bold mb-6 text-center">
+          Ajouter un Mouvement
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block mb-2">Date</label>
+            <input
+              type="date"
+              name="Date"
+              value={formData.Date}
+              onChange={handleChange}
+              required
+              className="w-full p-2 rounded bg-gray-700 text-white"
+            />
+          </div>
 
-        <div>
-          <label>Date *</label>
-          <input
-            type="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            required
-            className="p-2 rounded text-black w-full"
-          />
-        </div>
+          <div>
+            <label className="block mb-2">Actif (Selecteur)</label>
+            <select
+              name="Actif"
+              value={formData.Actif}
+              onChange={handleChange}
+              required
+              className="w-full p-2 rounded bg-gray-700 text-white"
+            >
+              <option value="">-- Choisir un actif --</option>
+              {actifs.map((a) => (
+                <option key={a.id} value={a.Selecteur}>
+                  {a.Selecteur}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div>
-          <label>Actif *</label>
-          <select
-            name="actif"
-            value={formData.actif}
-            onChange={handleChange}
-            required
-            className="p-2 rounded text-black w-full"
+          <div>
+            <label className="block mb-2">Quantité</label>
+            <input
+              type="number"
+              name="Quantité"
+              value={formData.Quantité}
+              onChange={handleChange}
+              required
+              className="w-full p-2 rounded bg-gray-700 text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-2">Cours</label>
+            <input
+              type="number"
+              step="0.01"
+              name="Cours"
+              value={formData.Cours}
+              onChange={handleChange}
+              required
+              className="w-full p-2 rounded bg-gray-700 text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-2">Frais</label>
+            <input
+              type="number"
+              step="0.01"
+              name="Frais"
+              value={formData.Frais}
+              onChange={handleChange}
+              required
+              className="w-full p-2 rounded bg-gray-700 text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-2">Type</label>
+            <input
+              type="text"
+              name="Type"
+              value={formData.Type}
+              onChange={handleChange}
+              required
+              className="w-full p-2 rounded bg-gray-700 text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-2">Commentaire</label>
+            <textarea
+              name="Commentaire"
+              value={formData.Commentaire}
+              onChange={handleChange}
+              className="w-full p-2 rounded bg-gray-700 text-white"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded font-bold"
           >
-            <option value="">-- Choisir un actif --</option>
-            {actifs.map((a) => (
-              <option key={a.id} value={a.field_6759 || a.id}>
-                {a.field_6759} - {a.field_6747} {/* code unique + nom */}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label>Quantité *</label>
-          <input
-            type="number"
-            name="quantite"
-            value={formData.quantite}
-            onChange={handleChange}
-            required
-            className="p-2 rounded text-black w-full"
-          />
-        </div>
-
-        <div>
-          <label>Cours *</label>
-          <input
-            type="number"
-            name="cours"
-            value={formData.cours}
-            onChange={handleChange}
-            required
-            className="p-2 rounded text-black w-full"
-          />
-        </div>
-
-        <div>
-          <label>Frais *</label>
-          <input
-            type="number"
-            name="frais"
-            value={formData.frais}
-            onChange={handleChange}
-            required
-            className="p-2 rounded text-black w-full"
-          />
-        </div>
-
-        <div>
-          <label>Type *</label>
-          <select
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            required
-            className="p-2 rounded text-black w-full"
-          >
-            <option value="achat">Achat</option>
-            <option value="vente">Vente</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Commentaire</label>
-          <input
-            type="text"
-            name="commentaire"
-            value={formData.commentaire}
-            onChange={handleChange}
-            className="p-2 rounded text-black w-full"
-          />
-        </div>
-
-        <div>
-          <label>Montant Total</label>
-          <input
-            type="text"
-            name="montant_total"
-            value={formData.montant_total}
-            readOnly
-            className="p-2 rounded text-black w-full bg-gray-700"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="mt-2 p-2 bg-green-600 rounded w-full font-bold hover:bg-green-700"
-        >
-          Enregistrer
-        </button>
-      </form>
+            Ajouter
+          </button>
+        </form>
+      </div>
     </div>
   );
-}
+};
 
 export default MouvementForm;
